@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Image, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Image, Plus, Trash2, ArrowLeft, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +55,28 @@ export const Moments: React.FC = () => {
         setCaption('');
     };
 
+    const handleShare = async (moment: Moment) => {
+        if (!navigator.share) {
+            alert("Sharing is not supported on this browser/device.");
+            return;
+        }
+
+        try {
+            // Convert Base64 back to a Blob/File for sharing
+            const response = await fetch(moment.imageUrl);
+            const blob = await response.blob();
+            const file = new File([blob], "moment.png", { type: blob.type });
+
+            await navigator.share({
+                title: 'MySafeLove Moment',
+                text: moment.caption,
+                files: [file],
+            });
+        } catch (err) {
+            console.error("Error sharing:", err);
+        }
+    };
+
     return (
         <div className="pb-24 px-6 pt-8 max-w-md mx-auto h-full overflow-y-auto">
              <div className="flex items-center gap-4 mb-6">
@@ -84,10 +106,16 @@ export const Moments: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: index * 0.1 }}
-                            className="bg-white p-2 pb-4 rounded-xl shadow-sm border border-gray-100 transform rotate-1 hover:rotate-0 transition-transform"
+                            className="bg-white p-2 pb-4 rounded-xl shadow-sm border border-gray-100 transform rotate-1 hover:rotate-0 transition-transform relative group"
                         >
-                            <div className="aspect-square rounded-lg overflow-hidden mb-2 bg-gray-50">
+                            <div className="aspect-square rounded-lg overflow-hidden mb-2 bg-gray-50 relative">
                                 <img src={moment.imageUrl} alt="Memory" className="w-full h-full object-cover" />
+                                <button 
+                                    onClick={() => handleShare(moment)}
+                                    className="absolute top-2 right-2 w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Share2 size={14} />
+                                </button>
                             </div>
                             <p className="text-xs font-medium text-center text-gray-600 px-1 font-handwriting">
                                 {moment.caption}

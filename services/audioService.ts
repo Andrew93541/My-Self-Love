@@ -17,17 +17,16 @@ const createPinkNoise = () => {
     const bufferSize = audioCtx.sampleRate * 2; // 2 seconds buffer
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
-
+    
+    let lastOutLocal = 0;
     for (let i = 0; i < bufferSize; i++) {
         const white = Math.random() * 2 - 1;
-        data[i] = (lastOut + (0.02 * white)) / 1.02;
-        lastOut = data[i];
+        data[i] = (lastOutLocal + (0.02 * white)) / 1.02;
+        lastOutLocal = data[i];
         data[i] *= 3.5; // (roughly) compensate for gain
     }
     return buffer;
 };
-
-let lastOut = 0;
 
 const createBrownNoise = () => {
     if (!audioCtx) return null;
@@ -35,11 +34,11 @@ const createBrownNoise = () => {
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
     
-    let lastOut = 0;
+    let lastOutLocal = 0;
     for (let i = 0; i < bufferSize; i++) {
         const white = Math.random() * 2 - 1;
-        data[i] = (lastOut + (0.02 * white)) / 1.02;
-        lastOut = data[i];
+        data[i] = (lastOutLocal + (0.02 * white)) / 1.02;
+        lastOutLocal = data[i];
         data[i] *= 3.5; 
     }
     return buffer;
@@ -53,23 +52,8 @@ export const audioService = {
         }
         if (!audioCtx || !gainNode) return;
 
-        const bufferSize = audioCtx.sampleRate * 2;
-        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        let lastOut = 0;
-
-        for (let i = 0; i < bufferSize; i++) {
-            const white = Math.random() * 2 - 1;
-            if (type === 'rain') {
-                // Pink noise approximation
-                data[i] = (lastOut + (0.02 * white)) / 1.02; 
-            } else {
-                 // Brown noise approximation (deeper)
-                data[i] = (lastOut + (0.05 * white)) / 1.05; 
-            }
-            lastOut = data[i];
-            data[i] *= 3.5; 
-        }
+        const buffer = type === 'rain' ? createPinkNoise() : createBrownNoise();
+        if (!buffer) return;
 
         const noiseSource = audioCtx.createBufferSource();
         noiseSource.buffer = buffer;
@@ -89,6 +73,42 @@ export const audioService = {
         
         noiseSource.start();
         activeSource = noiseSource;
+    },
+
+    playSiren: () => {
+        initAudio();
+        if (!audioCtx || !gainNode) return;
+
+        const osc = audioCtx.createOscillator();
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+
+        osc.type = 'sawtooth';
+        lfo.type = 'sine';
+        lfo.frequency.value = 2; // 2 Hz modulation (fast siren)
+
+        // Modulate frequency 
+        lfoGain.gain.value = 200; 
+        osc.frequency.value = 600; // Base freq
+
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        osc.connect(gainNode);
+
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1);
+
+        osc.start();
+        lfo.start();
+
+        // Play for 4 seconds only
+        setTimeout(() => {
+            gainNode?.gain.linearRampToValueAtTime(0, audioCtx!.currentTime + 0.5);
+            setTimeout(() => {
+                osc.stop();
+                lfo.stop();
+            }, 500);
+        }, 4000);
     },
 
     stop: () => {

@@ -52,6 +52,12 @@ export const getMyPair = (userId: string): PairingSession | null => {
   return Object.values(pairs).find(p => p.userA === userId || p.userB === userId) || null;
 };
 
+export const getPartnerId = (userId: string): string | null => {
+    const pair = getMyPair(userId);
+    if (!pair) return null;
+    return pair.userA === userId ? pair.userB || null : pair.userA;
+};
+
 // --- Location Sharing ---
 export const updateLocation = (userId: string, lat: number, lng: number) => {
   const data: LocationData = {
@@ -59,7 +65,7 @@ export const updateLocation = (userId: string, lat: number, lng: number) => {
     latitude: lat,
     longitude: lng,
     timestamp: Date.now(),
-    batteryLevel: (navigator as any).getBattery ? 100 : undefined // simplified
+    batteryLevel: (navigator as any).getBattery ? 85 : undefined // simulated
   };
   localStorage.setItem(KEYS.LOCATION + userId, JSON.stringify(data));
   triggerUpdate(KEYS.LOCATION + userId);
@@ -130,7 +136,6 @@ export const saveTodayLog = (userId: string, log: DailyLog) => {
 };
 
 // --- Chat (Shared) ---
-// If paired, we store chat under the PAIR ID, not User ID, so both see it.
 const getChatKey = (userId: string) => {
     const pair = getMyPair(userId);
     return pair ? KEYS.CHAT + pair.id : KEYS.CHAT + userId;
@@ -163,7 +168,6 @@ export const addDiaryEntry = (userId: string, entry: DiaryEntry) => {
 };
 
 // --- Moments (Shared if paired) ---
-// If paired, store moments under Pair ID
 const getMomentsKey = (userId: string) => {
     const pair = getMyPair(userId);
     return pair ? KEYS.MOMENTS + pair.id : KEYS.MOMENTS + userId;

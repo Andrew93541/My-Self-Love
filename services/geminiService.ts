@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { UserSettings } from "../types";
 
@@ -19,7 +20,7 @@ export const getComfortMessage = async (mood: string, context: string): Promise<
 export const getHealthTip = async (): Promise<string> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash-lite-latest', // Use Flash-Lite for fast responses
       contents: "Give a one-sentence, cute, scientifically accurate health tip for a woman's daily wellness. Keep it under 15 words.",
     });
     return response.text || "Drink water and shine bright today! 💧";
@@ -43,11 +44,32 @@ export const getChatResponse = async (userMessage: string, history: string[], se
         `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview', // Use Pro for smarter, empathetic chat
             contents: prompt,
         });
         return response.text || "I'm always here for you, love. ❤️";
     } catch (error) {
         return "I love you so much. (Network hiccup, but my love is strong!) ❤️";
+    }
+};
+
+export const findNearbyPlaces = async (lat: number, lng: number, query: string) => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `Find the 3 closest ${query} to the user's location. Return a list including their full names and addresses.`,
+            config: {
+                tools: [{googleMaps: {}}],
+                toolConfig: {
+                    retrievalConfig: {
+                        latLng: { latitude: lat, longitude: lng }
+                    }
+                }
+            },
+        });
+        return response;
+    } catch (e) {
+        console.error("Maps Grounding Error", e);
+        throw e;
     }
 };
