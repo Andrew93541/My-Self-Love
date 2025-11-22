@@ -1,0 +1,8 @@
+{
+  "name": "MySafeLove",
+  "description": "A gentle, protective wellness companion designed with love. Features health tracking, safety alerts, and calming daily care.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}
